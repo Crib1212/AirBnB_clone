@@ -1,7 +1,8 @@
 #!/usr/bin/python3
-"""Defines the HBnB console."""
+
 import cmd
 import re
+import sys
 from shlex import split
 from models import storage
 from models.base_model import BaseModel
@@ -12,66 +13,36 @@ from models.place import Place
 from models.amenity import Amenity
 from models.review import Review
 
-
-def parse(arg):
-    # Improved parsing function
-    curly_braces = re.search(r"\{(.*?)\}", arg)
-    brackets = re.search(r"\[(.*?)\]", arg)
-
-    if curly_braces is None:
-        if brackets is None:
-            return [i.strip(",") for i in split(arg)]
-        else:
-            lexer = split(arg[:brackets.span()[0]])
-            retl = [i.strip(",") for i in lexer]
-            retl.append(brackets.group())
-            return retl
-    else:
-        lexer = split(arg[:curly_braces.span()[0]])
-        retl = [i.strip(",") for i in lexer]
-        retl.append(curly_braces.group())
-        return retl
-
-
 class HBNBCommand(cmd.Cmd):
-    """Defines the HolbertonBnB command interpreter.
-
-    Attributes:
-        prompt (str): The command prompt.
-    """
-
     prompt = "(hbnb) "
-    __classes = {
-        "BaseModel",
-        "User",
-        "State",
-        "City",
-        "Place",
-        "Amenity",
-        "Review"
+    __classes = {"BaseModel", "User", "State", "City", "Place", "Amenity", "Review"}
+    
+    class_mapping = {
+        "BaseModel": BaseModel,
+        "User": User,
+        "State": State,
+        "City": City,
+        "Place": Place,
+        "Amenity": Amenity,
+        "Review": Review
     }
 
     def emptyline(self):
-        """Do nothing upon receiving an empty line."""
         pass
 
-    # ... (other methods)
-
     def do_create(self, arg):
-        """Usage: create <class>
-        Create a new class instance and print its id.
-        """
-        argl = parse(arg)
+        argl = self.parse(arg)
         if not argl:
-            print("** class name missing **")
-        elif argl[0] not in HBNBCommand.__classes:
-            print("** class doesn't exist **")
+            sys.stderr.write("** class name missing **\n")
+        elif argl[0] not in self.__classes:
+            sys.stderr.write("** class doesn't exist **\n")
         else:
-            print(eval(argl[0])().id)
+            instance = self.class_mapping[argl[0]]()
+            print(instance.id)
             storage.save()
 
-    # ... (other methods)
-
+    def parse(self, arg):
+        return re.findall(r"\{.*?\}|\[.*?\]|[^,]+", arg)
 
 if __name__ == "__main__":
     HBNBCommand().cmdloop()
